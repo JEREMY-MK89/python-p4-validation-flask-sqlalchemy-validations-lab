@@ -6,7 +6,7 @@ db = SQLAlchemy()
 
 class Author(db.Model):
     __tablename__ = 'authors'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, unique=True, nullable=False)
     phone_number = db.Column(db.String, nullable=False)
@@ -17,6 +17,9 @@ class Author(db.Model):
     def validate_name(self, key, name):
         if not name:
             raise ValueError("Author must have a name")
+        existing_author = Author.query.filter(Author.name == name).first()
+        if existing_author and existing_author.id != self.id:
+            raise ValueError("Author name must be unique")
         return name
 
     @validates('phone_number')
@@ -30,7 +33,7 @@ class Author(db.Model):
 
 class Post(db.Model):
     __tablename__ = 'posts'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String, nullable=False)
     content = db.Column(db.String)
@@ -41,8 +44,8 @@ class Post(db.Model):
 
     @validates('title')
     def validate_title(self, key, title):
-        if not title:
-            raise ValueError("Post must have a title")
+        if not any(keyword in title for keyword in ["Won't Believe", "Secret", "Top", "Guess"]):
+            raise ValueError("Post title must contain one of the specified keywords")
         return title
 
     @validates('content')
@@ -62,12 +65,6 @@ class Post(db.Model):
         if category not in ['Fiction', 'Non-Fiction']:
             raise ValueError("Post category must be either Fiction or Non-Fiction")
         return category
-
-    def validate_clickbait(self, key, title):
-        clickbait_phrases = ["Won't Believe", "Secret", "Top", "Guess"]
-        if not any(phrase in title for phrase in clickbait_phrases):
-            raise ValueError("Title must be sufficiently clickbait-y")
-        return title
 
     def __repr__(self):
         return f'Post(id={self.id}, title={self.title}, content={self.content}, summary={self.summary})'
